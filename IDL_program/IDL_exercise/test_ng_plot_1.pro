@@ -1,0 +1,12 @@
+PRO test_ng_plot_1
+
+x = FINDGEN(361)
+y1 = SIN(x*!dtor)
+y2 = COS(x*!dtor)
+win = WINDOW(DIMENSIONS=[600, 500], /NO_TOOLBAR)
+p = PLOT(x, y1, COLOR='blue', THICK=2, XRANGE=[0,360], YRANGE=[-1.0,1.0],$
+  XTICKINTERVAL=90, /CURRENT)
+ p = PLOT(x, y2, COLOR='red', THICK=2, XRANGE=[0,360], YRANGE=[-1.0,1.0],$
+    XTICKINTERVAL=90, /CURRENT)
+
+END

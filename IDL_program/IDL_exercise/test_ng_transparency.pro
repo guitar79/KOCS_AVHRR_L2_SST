@@ -1,0 +1,14 @@
+PRO test_ng_transparency
+
+data1 = HANNING(600, 600)*100
+data2 = HANNING(600, 600)*100
+
+win = WINDOW(DIMENSIONS=[600, 600], /NO_TOOLBAR)
+im1 = IMAGE(data1, RGB_TABLE=67, /CURRENT)
+im2 = IMAGE(data2, RGB_TABLE=1, /CURRENT)
+
+;im2.TRANSPARENCY = 50
+
+;FOR j = 100, 0, -1 DO im2.TRANSPARENCY = j
+
+END
