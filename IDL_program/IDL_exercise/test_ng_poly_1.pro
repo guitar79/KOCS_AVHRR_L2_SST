@@ -21,6 +21,6 @@ vy = [0.2, 0.2, 0.8, 0.8, 0.2]
 win2 = WINDOW(DIMENSIONS=[600, 600], /NO_TOOLBAR)
 pll = POLYLINE(vx, vy, THICK=3, COLOR='blue', /NORMAL)
 
-IF fig_sav THEN win2.Save, 'figures/ng_polyline_1B.png', WIDTH=600
+IF fig_sav THEN win2.Save, 'figures/ng_polyline_1B.eps', WIDTH=600
 
 END

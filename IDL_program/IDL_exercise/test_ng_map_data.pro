@@ -21,8 +21,8 @@ m = MAP('Geographic', LIMIT=limit, ASPECT_RATIO=0, MARGIN=0.1, /CURRENT)
 ;  IMAGE_LOCATION=[120, 30], GRID_UNITS=2, /OVERPLOT)
 im = IMAGE(data, lons, lats, RGB_TABLE=74, GRID_UNITS=2, ASPECT_RATIO=0, /OVERPLOT)
 conv = [20, 30, 50, 60, 80]
-;cn = CONTOUR(data, lons, lats, C_VALUE=conv, RGB_TABLE=74, FILL=0, C_THICK=2, $
-;  C_LABEL_SHOW=1, LABEL_COLOR='black', GRID_UNITS=2, /OVERPLOT)
+cn = CONTOUR(data, lons, lats, C_VALUE=conv, RGB_TABLE=74, FILL=0, C_THICK=2, $
+  C_LABEL_SHOW=1, LABEL_COLOR='black', GRID_UNITS=2, /OVERPLOT)
 ;cno = CONTOUR(data, lons, lats, C_VALUE=conv, COLOR='black', C_THICK=2, $
 ;  C_LABEL_SHOW=1, GRID_UNITS=2, /OVERPLOT)
 mc = MAPCONTINENTS('data/GSHHS_i_L1.shp', THICK=2)

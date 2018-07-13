@@ -2,7 +2,7 @@ PRO test_ng_plot3d_1
 
 fig_sav = 0
 
-n = 10
+n = 100
 x = RANDOMU(seed, n)*10
 y = RANDOMU(seed, n)*10
 z = RANDOMU(seed, n)*10
