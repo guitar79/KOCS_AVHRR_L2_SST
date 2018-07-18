@@ -2,6 +2,10 @@ from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
 import numpy as np
 
+#for install basemap
+#conda install -c conda-forge basemap=1.0.8.dev0
+#conda install -c conda-forge basemap-data-hires
+
 # create new figure, axes instances.
 fig=plt.figure()
 ax=fig.add_axes([0.1,0.1,0.8,0.8])
