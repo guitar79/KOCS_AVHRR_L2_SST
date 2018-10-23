@@ -6,18 +6,13 @@
 #conda install -c conda-forge basemap
 #conda install -c conda-forge matplotlib
 '''
-
-#import os
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
 import numpy as np
-from datetime import datetime, timedelta, date
+from datetime import datetime
 import calendar
 import os
 from pyhdf.SD import SD, SDC
-from datetime import datetime
-import time
 
 
 # some variables for downloading (site, file, perid and time gap, etc.)
@@ -27,35 +22,50 @@ time_gap = 6 #time gap
 request_hour = range(0,24,time_gap) #make list
 #request_hour = [0, 3, 6, 9, 12, 15, 18, 21] #make list
 
-## * Time Domain
-
-smonth = 1
-sday = 1
-syear = 2015
-sjul = julday(smonth, sday, syear)
-
-emonth  = 12
-eday    = 31 
-eyear   = 2016
-ejul    = julday(emonth, eday, eyear)
-
-#int('%d%03d' % (tt.tm_year, tt.tm_yday))
-# Open file.
-#FILE_NAME = 'AIRS.2002.08.01.L3.RetStd_H031.v4.0.21.0.G06104133732.hdf'
-dir_name = '/media/guitar79/6TB2/MODIS_AOD/DAAC_MOD04_3K/H28V05/'
-f_name = 'MYD04_3K.A2016366.0440.006.2017010010311.hdf'
-
 
 def JulianDate_to_date(y, jd):
     month = 1
     while jd - calendar.monthrange(y,month)[1] > 0 and month <= 12:
         jd = jd - calendar.monthrange(y,month)[1]
         month += 1
-    date = datetime(y,month,jd).strftime("%Y/%m/%d")
-    return date
+    return datetime(y, month, jd).strftime('%Y%m%d')
+#JulianDate_to_date(2018, 131) -- '20180511'
 
+def date_to_JulianDate(dt, fmt):
+    dt = datetime.strptime(dt, fmt)
+    tt = dt.timetuple()
+    return int('%d%03d' % (tt.tm_year, tt.tm_yday))
+#date_to_JulianDate('20180201', '%Y%m%d') -- 2018032
 
+#Make Grid
+Slat, Nlat = 20, 50
+Llon, Rlon = 100, 150
+resolution = 0.25
+fac = 1./resolution
+ni = np.int((Rlon-Llon)/resolution+1)
+nj = np.int((Nlat-Slat)/resolution+1)
+#lon_lat = np.zeros((ni, nj), dtype=(np.float16, np.float16))
+array_lon = np.zeros((ni, nj), dtype=np.float16)
+array_lat = np.zeros((ni, nj), dtype=np.float16)
+array_sum = np.zeros((ni, nj), dtype=np.float32)
+array_cnt = np.zeros((ni, nj), dtype=np.int32)
 
+for j in range(nj):
+    for i in range(ni) :
+        array_lon[i][j] = (Llon + resolution * i)
+        array_lat[i][j] = (Slat + resolution * j)
+        
+'''
+array_sum = np.zeros((180, 360), dtype=np.float64)
+array_cnt = np.zeros((180, 360), dtype=np.int32)
+for data in datas:
+    x,y,v = get_data(data)
+    xx = int(2*x)
+    yy = int(2*y)
+    array_sum[xx][yy]+=v
+    array_cnt[xx][yy]+=1
+    
+for i in range(180)'''
 #variable for calculating date
 start_date = datetime.date(datetime.strptime(startdate, '%Y%m%d')) #convert startdate to date type
 end_date = datetime.date(datetime.strptime(enddate, '%Y%m%d')) #convert enddate to date type
@@ -67,42 +77,29 @@ def filename_to_datetime(filename):
     fileinfo = filename.split('.')
     return datetime.strptime(fileinfo[4]+fileinfo[5], '%Y%m%d%H%M%S')
 
+# Open file.
+dir_name = '/media/guitar79/6TB2/MODIS_AOD/DAAC_MOD04_3K/H28V05/'
+f_name = 'MYD04_3K.A2016366.0440.006.2017010010311.hdf'
 
 hdf = SD(dir_name+f_name, SDC.READ)
-
+#print (hdf.datasets())
+#print (dir(hdf))
 # List available SDS datasets.
-print (hdf.datasets())
-print (dir(hdf))
 #{'Longitude': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 5, 0), 'Latitude': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 5, 1), 'Scan_Start_Time': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 6, 2), 'Solar_Zenith': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 3), 'Solar_Azimuth': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 4), 'Sensor_Zenith': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 5), 'Sensor_Azimuth': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 6), 'Scattering_Angle': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 7), 'Glint_Angle': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 8), 'Land_Ocean_Quality_Flag': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 9), 'Land_sea_Flag': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 10), 'Wind_Speed_Ncep_Ocean': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 11), 'Optical_Depth_Land_And_Ocean': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 12), 'Image_Optical_Depth_Land_And_Ocean': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 13), 'Aerosol_Type_Land': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 14), 'Fitting_Error_Land': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 15), 'Surface_Reflectance_Land': (('Solution_2_Land:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (3, 676, 451), 22, 16), 'Corrected_Optical_Depth_Land': (('Solution_3_Land:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (3, 676, 451), 22, 17), 'Corrected_Optical_Depth_Land_wav2p1': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 18), 'Optical_Depth_Ratio_Small_Land': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 19), 'Number_Pixels_Used_Land': (('Solution_1_Land:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (2, 676, 451), 22, 20), 'Mean_Reflectance_Land': (('MODIS_Band_Land:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 21), 'STD_Reflectance_Land': (('MODIS_Band_Land:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 22), 'Mass_Concentration_Land': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 5, 23), 'Aerosol_Cloud_Fraction_Land': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 24), 'Quality_Assurance_Land': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04', 'QA_Byte_Land:mod04'), (676, 451, 5), 20, 25), 'Solution_Index_Ocean_Small': (('Solution_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (2, 676, 451), 22, 26), 'Solution_Index_Ocean_Large': (('Solution_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (2, 676, 451), 22, 27), 'Effective_Optical_Depth_Best_Ocean': (('MODIS_Band_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 28), 'Effective_Optical_Depth_Average_Ocean': (('MODIS_Band_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 29), 'Optical_Depth_Small_Best_Ocean': (('MODIS_Band_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 30), 'Optical_Depth_Small_Average_Ocean': (('MODIS_Band_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 31), 'Optical_Depth_Large_Best_Ocean': (('MODIS_Band_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 32), 'Optical_Depth_Large_Average_Ocean': (('MODIS_Band_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 33), 'Mass_Concentration_Ocean': (('Solution_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (2, 676, 451), 5, 34), 'Aerosol_Cloud_Fraction_Ocean': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 35), 'Effective_Radius_Ocean': (('Solution_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (2, 676, 451), 22, 36), 'PSML003_Ocean': (('Solution_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (2, 676, 451), 5, 37), 'Asymmetry_Factor_Best_Ocean': (('MODIS_Band_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 38), 'Asymmetry_Factor_Average_Ocean': (('MODIS_Band_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 39), 'Backscattering_Ratio_Best_Ocean': (('MODIS_Band_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 40), 'Backscattering_Ratio_Average_Ocean': (('MODIS_Band_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 41), 'Angstrom_Exponent_1_Ocean': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 42), 'Angstrom_Exponent_2_Ocean': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 43), 'Least_Squares_Error_Ocean': (('Solution_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (2, 676, 451), 22, 44), 'Optical_Depth_Ratio_Small_Ocean_0.55micron': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 45), 'Optical_Depth_by_models_ocean': (('Solution_Index:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (9, 676, 451), 22, 46), 'Number_Pixels_Used_Ocean': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 47), 'Mean_Reflectance_Ocean': (('MODIS_Band_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 48), 'STD_Reflectance_Ocean': (('MODIS_Band_Ocean:mod04', 'Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (7, 676, 451), 22, 49), 'Quality_Assurance_Ocean': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04', 'QA_Byte_Ocean:mod04'), (676, 451, 5), 20, 50), 'Topographic_Altitude_Land': (('Cell_Along_Swath:mod04', 'Cell_Across_Swath:mod04'), (676, 451), 22, 51)}
 
-DATAFIELD_NAME='Optical_Depth_Land_And_Ocean'
-
-'''
-hdfid = hdf_sd_start(file(0))
-hdf_sd_readonly,hdfid,'Optical_Depth_Land_And_Ocean',aod
-hdf_sd_readonly,hdfid,'Longitude',lon
-hdf_sd_readonly,hdfid,'Latitude',lat
-scale_factor = hdf_sd_attinfo(hdfid,'Optical_Depth_Land_And_Ocean','scale_factor')
-offset = hdf_sd_attinfo(hdfid,'Optical_Depth_Land_And_Ocean','add_offset')
-hdf_sd_end,hdfid
-'''
-
 # Read AOD dataset.
+DATAFIELD_NAME='Optical_Depth_Land_And_Ocean'
 hdf_raw = hdf.select(DATAFIELD_NAME)
-print(dir(hdf_raw))
-#['_SDS__buildStartCountStride', '__class__', '__del__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattr__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__len__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setitem__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_id', '_sd', 'attr', 'attributes', 'checkempty', 'dim', 'dimensions', 'endaccess', 'get', 'getcal', 'getcompress', 'getdatastrs', 'getfillvalue', 'getrange', 'info', 'iscoordvar', 'isrecord', 'ref', 'set', 'setcal', 'setcompress', 'setdatastrs', 'setexternalfile', 'setfillvalue', 'setrange']
-print(dir(hdf_raw.dimensions()))
-aod_attri = hdf_raw.attributes()
+#print(dir(hdf_raw))
+#print(dir(hdf_raw.dimensions()))
 
-print('aod_attri', aod_attri)
+aod_attri = hdf_raw.attributes()
+#print('aod_attri', aod_attri)
 
 aod_data = hdf_raw[:,:]
-#data = data3D
 scale_factor = hdf_raw.attributes()['scale_factor']
 add_offset = hdf_raw.attributes()['add_offset']
-
 aod = aod_data * scale_factor + add_offset
-
 aod[aod < 0] = np.nan
 
 # Read geolocation dataset.
@@ -118,15 +115,12 @@ llcrnrlon=100, urcrnrlon = 160)
 m.drawcoastlines(linewidth=0.5)
 m.drawparallels(np.arange(-90., 120., 30.), labels=[1, 0, 0, 0])
 m.drawmeridians(np.arange(-180., 181., 45.), labels=[0, 0, 0, 1])
-x, y = m(longitude, latitude)
-m.pcolormesh(x, y, aod)
-
+#x, y = m(longitude, latitude)
+#m.pcolormesh(x, y, aod)
+m.pcolormesh(longitude, latitude, aod)
 plt.colorbar(cmap='bwr', extend='max')
-
 plt.title('MODIS AOD')
-
 plt.savefig(dir_name+f_name+'.png', bbox_inches='tight', dpi = 300)
-
 plt.show()
 
 
