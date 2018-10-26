@@ -39,45 +39,25 @@ def date_to_JulianDate(dt, fmt):
 
 #Make Grid
 Slat, Nlat = 20, 50
-Llon, Rlon = 100, 150
+Llon, Rlon = 150, 100
 resolution = 0.25
 fac = 1./resolution
-ni = np.int((Rlon-Llon)/resolution+1)
-nj = np.int((Nlat-Slat)/resolution+1)
-#lon_lat = np.zeros((ni, nj), dtype=(np.float16, np.float16))
-array_lon = np.zeros((ni, nj), dtype=np.float16)
-array_lat = np.zeros((ni, nj), dtype=np.float16)
-array_sum = np.zeros((ni, nj), dtype=np.float32)
-array_cnt = np.zeros((ni, nj), dtype=np.int32)
 
-for j in range(nj):
-    for i in range(ni) :
-        array_lon[i][j] = (Llon + resolution * i)
-        array_lat[i][j] = (Slat + resolution * j)
-        
-'''
-array_sum = np.zeros((180, 360), dtype=np.float64)
-array_cnt = np.zeros((180, 360), dtype=np.int32)
-for data in datas:
-    x,y,v = get_data(data)
-    xx = int(2*x)
-    yy = int(2*y)
-    array_sum[xx][yy]+=v
-    array_cnt[xx][yy]+=1
-    
-for i in range(180)'''
-#variable for calculating date
-start_date = datetime.date(datetime.strptime(startdate, '%Y%m%d')) #convert startdate to date type
-end_date = datetime.date(datetime.strptime(enddate, '%Y%m%d')) #convert enddate to date type
-duration = (end_date - start_date).days #total days for downloading
-print ('*'*80)
-#print ((duration+1), 'days', int((duration+1)*(24/time_gap)), 'files will be downloaded')
+ni = np.int((Nlat-Slat)/resolution+1)
+nj = np.int((Llon-Rlon)/resolution+1)
 
-def filename_to_datetime(filename):
-    fileinfo = filename.split('.')
-    return datetime.strptime(fileinfo[4]+fileinfo[5], '%Y%m%d%H%M%S')
+array_data = []
+for i in range(ni):
+    temp = []
+    for j in range(nj):
+        temp.append({'latitude' : Slat+resolution*i, \
+                     'longitude' : Llon-resolution*j, \
+                     'data' : []})
+    array_data.append(temp)
 
-# Open file.
+array_data[ni][nj]['data'].append(data)
+
+
 dir_name = '/media/guitar79/6TB2/MODIS_AOD/DAAC_MOD04_3K/H28V05/'
 f_name = 'MYD04_3K.A2016366.0440.006.2017010010311.hdf'
 
@@ -108,6 +88,49 @@ latitude = lat[:,:]
 lon = hdf.select('Longitude')
 longitude = lon[:,:]
 
+longitude, latitude, aod
+
+'''
+
+array_data = []
+for i in range(maxlat):
+    temp = []
+    for j in range(maxlon):
+        temp.append({'latitude' : ni, 'longitude' : nj, 'data' : []})
+    array_data.append([])
+
+array_data[ni][nj]['data'].append(data)
+
+array_sum = np.zeros((180, 360), dtype=np.float64)
+array_cnt = np.zeros((180, 360), dtype=np.int32)
+for data in datas:
+    x,y,v = get_data(data)
+    xx = int(2*x)
+    yy = int(2*y)
+    array_sum[xx][yy]+=v
+    array_cnt[xx][yy]+=1
+    
+for i in range(180)
+#variable for calculating date
+start_date = datetime.date(datetime.strptime(startdate, '%Y%m%d')) #convert startdate to date type
+end_date = datetime.date(datetime.strptime(enddate, '%Y%m%d')) #convert enddate to date type
+duration = (end_date - start_date).days #total days for downloading
+print ('*'*80)
+#print ((duration+1), 'days', int((duration+1)*(24/time_gap)), 'files will be downloaded')
+
+def filename_to_datetime(filename):
+    fileinfo = filename.split('.')
+    return datetime.strptime(fileinfo[4]+fileinfo[5], '%Y%m%d%H%M%S')
+
+# Open file.
+
+
+# Read geolocation dataset.
+lat = hdf.select('Latitude')
+latitude = lat[:,:]
+lon = hdf.select('Longitude')
+longitude = lon[:,:]
+
 
 # sylender map
 m = Basemap(projection='cyl', resolution='h', llcrnrlat=10, urcrnrlat = 60, \
@@ -125,7 +148,6 @@ plt.show()
 
 
 
-'''
 @MODIS_L2_AOD_READ
 
 ;; ============================================
