@@ -1,19 +1,30 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Nov  3 20:34:47 2018
+
+@author: guitar79
+"""
+
 ''' created by Kevin 
  Open hdf file
-#NameError: name 'SD' is not defined
-#conda install -c conda-forge pyhdf
-#conda install -c conda-forge basemap-data-hires
-#conda install -c conda-forge basemap
-#conda install -c conda-forge matplotlib
+conda update-all
+NameError: name 'SD' is not defined
+conda install -c conda-forge pyhdf=0.9.0
+conda install -c conda-forge basemap-data-hires
+conda install -c conda-forge basemap
 '''
-import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
+
 import numpy as np
 from datetime import datetime
 import calendar
 import os
 from pyhdf.SD import SD, SDC
+import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap
+from numpy import meshgrid
 
+start_time=datetime.now()
 
 # some variables for downloading (site, file, perid and time gap, etc.)
 startdate = '20150101' #start date
@@ -23,44 +34,67 @@ request_hour = range(0,24,time_gap) #make list
 #request_hour = [0, 3, 6, 9, 12, 15, 18, 21] #make list
 
 
+#JulianDate_to_date(2018, 131) -- '20180511'
 def JulianDate_to_date(y, jd):
     month = 1
     while jd - calendar.monthrange(y,month)[1] > 0 and month <= 12:
         jd = jd - calendar.monthrange(y,month)[1]
         month += 1
     return datetime(y, month, jd).strftime('%Y%m%d')
-#JulianDate_to_date(2018, 131) -- '20180511'
 
+#date_to_JulianDate('20180201', '%Y%m%d') -- 2018032
 def date_to_JulianDate(dt, fmt):
     dt = datetime.strptime(dt, fmt)
     tt = dt.timetuple()
     return int('%d%03d' % (tt.tm_year, tt.tm_yday))
-#date_to_JulianDate('20180201', '%Y%m%d') -- 2018032
 
 #Make Grid
-Slat, Nlat = 20, 50
-Llon, Rlon = 150, 100
-resolution = 0.25
+print('='*80)
+print('Start making grid arrays...')
+Llon, Rlon = 90, 150
+Slat, Nlat = 10, 60
+resolution = 0.05
 fac = 1./resolution
 
-ni = np.int((Nlat-Slat)/resolution+1)
-nj = np.int((Llon-Rlon)/resolution+1)
+ni = np.int((Rlon-Llon)/resolution+1.00)
+nj = np.int((Nlat-Slat)/resolution+1.00)
 
-array_data = []
+lon_array = []
+lat_array = []
+data_array = []   
+mean_array = [] 
+cnt_array = [] 
 for i in range(ni):
-    temp = []
+    lon_line = []
+    lat_line = []
+    data_line = []
+    mean_line = [] 
+    cnt_line = [] 
     for j in range(nj):
-        temp.append({'latitude' : Slat+resolution*i, \
-                     'longitude' : Llon-resolution*j, \
-                     'data' : []})
-    array_data.append(temp)
+        lon_line.append(Llon+resolution*i)
+        lat_line.append(Nlat-resolution*j)
+        data_line.append([])
+        mean_line.append([])
+        cnt_line.append([])
+    lon_array.append(lon_line)
+    lat_array.append(lat_line)
+    data_array.append(data_line)
+    mean_array.append(mean_line)
+    cnt_array.append(cnt_line)
+lat_array = np.array(lat_array)
+lon_array = np.array(lon_array)
+print('grid arrays are created')
 
-array_data[ni][nj]['data'].append(data)
+#data_array = np.array(data_array)
+print('='*80)
+print('Finish making grid array...')
+print('='*80)
 
-
-dir_name = '/media/guitar79/6TB2/MODIS_AOD/DAAC_MOD04_3K/H28V05/'
+dir_name = 'DAAC_MOD04_3K/H28V05/'
 f_name = 'MYD04_3K.A2016366.0440.006.2017010010311.hdf'
 
+print('='*80)
+print('Start reading HDF file and extract Longitude, Latitude and AOD value')
 hdf = SD(dir_name+f_name, SDC.READ)
 #print (hdf.datasets())
 #print (dir(hdf))
@@ -72,15 +106,14 @@ DATAFIELD_NAME='Optical_Depth_Land_And_Ocean'
 hdf_raw = hdf.select(DATAFIELD_NAME)
 #print(dir(hdf_raw))
 #print(dir(hdf_raw.dimensions()))
-
-aod_attri = hdf_raw.attributes()
+#aod_attri = hdf_raw.attributes()
 #print('aod_attri', aod_attri)
-
 aod_data = hdf_raw[:,:]
 scale_factor = hdf_raw.attributes()['scale_factor']
 add_offset = hdf_raw.attributes()['add_offset']
 aod = aod_data * scale_factor + add_offset
 aod[aod < 0] = np.nan
+aod = np.asarray(aod)
 
 # Read geolocation dataset.
 lat = hdf.select('Latitude')
@@ -88,194 +121,82 @@ latitude = lat[:,:]
 lon = hdf.select('Longitude')
 longitude = lon[:,:]
 
-longitude, latitude, aod
+print('='*80)
+print(longitude.min(), longitude.max(), latitude.min(), latitude.max())
+print('='*80)
+print('Finish reading HDF file and extract Longitude, Latitude and AOD value')    
+print('='*80)
 
-'''
+print('='*80)
+print('Longitude, Latitude and AOD values will be insert to the grid')
 
-array_data = []
-for i in range(maxlat):
-    temp = []
-    for j in range(maxlon):
-        temp.append({'latitude' : ni, 'longitude' : nj, 'data' : []})
-    array_data.append([])
+duration = (datetime.now() - start_time) #total days for downloading
+print('duration (sec) :', duration)
+print('='*80)
 
-array_data[ni][nj]['data'].append(data)
+cnt = 0 #for debug
+if np.shape(longitude) != np.shape(latitude) or np.shape(latitude) != np.shape(aod) :
+    print('data shape is different!!')
+    print('='*80)
+else : 
+    lon_cood = ((longitude-Llon)/resolution*100//100)
+    lat_cood = ((Nlat-latitude)/resolution*100//100)
 
-array_sum = np.zeros((180, 360), dtype=np.float64)
-array_cnt = np.zeros((180, 360), dtype=np.int32)
-for data in datas:
-    x,y,v = get_data(data)
-    xx = int(2*x)
-    yy = int(2*y)
-    array_sum[xx][yy]+=v
-    array_cnt[xx][yy]+=1
-    
-for i in range(180)
-#variable for calculating date
-start_date = datetime.date(datetime.strptime(startdate, '%Y%m%d')) #convert startdate to date type
-end_date = datetime.date(datetime.strptime(enddate, '%Y%m%d')) #convert enddate to date type
-duration = (end_date - start_date).days #total days for downloading
-print ('*'*80)
-#print ((duration+1), 'days', int((duration+1)*(24/time_gap)), 'files will be downloaded')
+    for i in range(np.shape(lon_cood)[0]) :
+        for j in range(np.shape(lon_cood)[1]) :
+            #cnt += 1 #for debug
+            #print('cnt1 :' , cnt)
+            data_array[int(lon_cood[i][j])][int(lat_cood[i][j])].append(aod[i][j])
+            #data_array[int(longitude[i][j])][int(latitude[i][j])].append(aod[i][j])
+        print('='*80)
+        print('Finish inserting Longitude, Latitude and AOD values to the grid')
+        print('='*80)
 
-def filename_to_datetime(filename):
-    fileinfo = filename.split('.')
-    return datetime.strptime(fileinfo[4]+fileinfo[5], '%Y%m%d%H%M%S')
+duration = (datetime.now() - start_time) #total days for downloading
+print('duration (sec) :', duration)
+print('='*80)    
+  
 
-# Open file.
+print('='*80)
+print('Starting calculating mean value at each pixel ')
+cnt = 0 #for debug
+for i in range(np.shape(data_array)[0]):
+    for j in range(np.shape(data_array)[1]):
+        #cnt += 1 #for debug
+        #print('cnt2 :' , cnt)
+        mean_array[i][j] = np.mean(data_array[i][j])
+print('='*80)
+print('Finish calculating mean value at each pixel ')
+print('='*80)
 
+mean_array = np.array(mean_array)
+print(np.shape(mean_array))
 
-# Read geolocation dataset.
-lat = hdf.select('Latitude')
-latitude = lat[:,:]
-lon = hdf.select('Longitude')
-longitude = lon[:,:]
-
+#Draw map
+print('='*80)
+print('Draw picture')
+plt.figure(figsize=(10, 10))
 
 # sylender map
-m = Basemap(projection='cyl', resolution='h', llcrnrlat=10, urcrnrlat = 60, \
-llcrnrlon=100, urcrnrlon = 160)
-m.drawcoastlines(linewidth=0.5)
-m.drawparallels(np.arange(-90., 120., 30.), labels=[1, 0, 0, 0])
-m.drawmeridians(np.arange(-180., 181., 45.), labels=[0, 0, 0, 1])
-#x, y = m(longitude, latitude)
-#m.pcolormesh(x, y, aod)
-m.pcolormesh(longitude, latitude, aod)
-plt.colorbar(cmap='bwr', extend='max')
-plt.title('MODIS AOD')
-plt.savefig(dir_name+f_name+'.png', bbox_inches='tight', dpi = 300)
+m = Basemap(projection='cyl', resolution='h', \
+            llcrnrlat = Slat, urcrnrlat = Nlat, \
+            llcrnrlon = Llon, urcrnrlon = Rlon)
+m.drawcoastlines(linewidth=0.25)
+m.drawcountries(linewidth=0.25)
+#m.fillcontinents(color='coral',lake_color='aqua')
+#m.drawmapboundary(fill_color='aqua')
+
+m.drawparallels(np.arange(-90., 90., 10.), labels=[1, 0, 0, 0])
+m.drawmeridians(np.arange(-180., 181., 15.), labels=[0, 0, 0, 1])
+
+x, y = m(lon_array, lat_array) # convert to projection map
+
+plt.pcolormesh(x, y, mean_array)
+plt.colorbar(cmap='bwr', fraction=0.038, pad=0.04)
+
+plt.title('MODIS AOD', fontsize=20)
+#plt.savefig(dir_name+f_name+'.png', bbox_inches='tight', dpi = 300)
+
 plt.show()
 
-
-
-@MODIS_L2_AOD_READ
-
-;; ============================================
-;; * Time Domain
-
-    smonth  = 01
-    sday    = 01
-    syear   = 2015
-    sjul    = julday(smonth, sday, syear)
-
-    emonth  = 12
-    eday    = 31 
-    eyear   = 2016
-    ejul    = julday(emonth, eday, eyear)
-
-;; ============================================
-;; * PATH
-
-	modispath   = '/media/guitar79/8T/RS_data/MODIS/DAAC_MOD04_3K/all/'
-	workpath	= '/media/guitar79/8T/RS_data/Remote_Sensing/2017RNE/MODIS_READ/Result_daily_025_txt/'
-
-;; ==============================================
-;; * Make Grid
-
-    Slat = 20
-    Nlat = 50
-    Llon  =100
-    Rlon = 150
-
-    del = 0.25
-    fac = 1./del
-
-    ni = (Rlon-Llon)/del+1.
-    nj = (Nlat-Slat)/del+1.
-
-    lat = fltarr(ni,nj)
-    lon = fltarr(ni,nj)
-    for j = 0, nj-1 do lat(*,j) = Nlat-del*j
-    for i = 0, ni-1 do lon(i,*) = Llon+del*i
-
-;; ============================================
-;; * READ MODIS file
-
-for jul = sjul, ejul do begin ;;각 날짜별로 돌린다.
-
-    caldat, jul, mm, dd, yy
-    stdjul = julday(01,01,yy)
-    dayn = jul-stdjul+1.
-
-    yyst	= string(yy,'(I4.4)')
-    mmst	= string(mm,'(I2.2)')
-    ddst	= string(dd,'(I2.2)')
-    julst	= string(dayn,'(I3.3)')
-
-	modisname  = modispath+'MOD04_3K.A'+yyst+julst ;;파일 이름 특성상 하루 분량의 데이터를 읽게된다.
-;;	file	= file_search(modispath, 'MOD04_3K.A'+yyst+julst+'*.hdf', count = modisfilen)
-	file       = file_search(modisname+'*.hdf', count = modisfilen) ;;하루 치 파일을 읽음. modisfilen개이다.
-
-	if modisfilen lt 1 then begin
-    	print,'====================================='
-    	print,'Cannot find MODIS L2 file:'+modisname
-    	print,'====================================='
-	endif else begin
-	
-		;; ---------------
-		;; READ MODIS data
-		modaod_day = fltarr(ni,nj,modisfilen) & modaod_day(*,*,*) = !values.f_nan
-
-		for ff = 0, modisfilen-1 do begin ;;각 파일별로 for문을 돌린다.
-
-			MODIS_L2_AOD_READ,file=file(ff),aod=modaod,lat=modlat,lon=modlon
-			locidx = where(modaod gt -1 and modlat gt Slat and modlat le Nlat and modlon gt Llon and modlon le Rlon, locnum)
-
-			if locnum lt 10 then begin
-    			print,'====================================='
-    			print,'Cannot find Collodated data :'+file(ff)
-    			print,'====================================='
-			endif else begin
-
-				mdlat_r = round(modlat(locidx)/del)*del
-				mdlon_r = round(modlon(locidx)/del)*del
-
-				for jj = 0., nj-1 do begin
-				yidx = nlat-jj*del
-				ygrid = where(mdlat_r gt yidx-0.01 and mdlat_r lt yidx+0.01, ynum)
-				if ynum gt 0 then begin
-				
-				    for ii = 0., ni-1 do begin
-				        xidx = llon+ii*del
-				        xgrid = where(mdlon_r(ygrid) ge xidx-0.01 and mdlon_r(ygrid) le xidx+0.01,xnum)
-				        if xnum gt 0 then begin
-				            data = modaod(locidx(ygrid(xgrid)))
-				            dum = where(data lt 5,nanc)
-				            if nanc gt fix(xnum*0.5) then begin
-				                result = moment(data(dum),/nan,sdev = std)
-				                if result(0) gt 0 then begin
-				                modaod_day(ii,jj,ff) = result(0) ;;하루치 파일들의 셀 별 값이다.
-				                endif
-				            endif
-				        endif
-				    endfor
-				
-				endif
-				endfor
-
-			endelse
-		endfor	;; MODIS file for a day
-
-                modaod_fin = fltarr(ni, nj) & modaod_fin(*,*) = !values.f_nan
-                for jj = 0., nj-1 do begin
-                for ii = 0., ni-1 do begin
-                    modaod_fin(ii,jj) = mean(modaod_day(ii,jj,*),/nan) ;;하루치 값들을 셀 별로 평균내어 하나의 array로 만든다.
-                endfor
-                endfor
-
-    
-    OPENW, filevar, workpath+yyst+julst+'.txt', /GET_LUN
-    for ii=0, ni-1 do begin
-      for jj=0, nj-1 do begin
-        printf, filevar, Nlat+del*jj, Llon+del*ii, modaod_fin(ii,jj)
-      endfor
-    endfor
-    FREE_LUN, filevar
-      
-		print, jul
-				
-	endelse
-endfor		;; julian date
-END
-'''
-
+plt.figure(figsize=(10, 10))
