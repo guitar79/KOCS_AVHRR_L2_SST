@@ -74,11 +74,11 @@ def f(proc_date):
     Slat, Nlat = 10, 60
     resolution = 0.25
     
-    write_log += 'Llon =' + str(Llon) + '\n' \
-                + 'Rlon =' + str(Rlon) + '\n' \
-                + 'Slat =' + str(Slat) + '\n' \
-                + 'Nlat =' + str(Nlat) + '\n' \
-                + 'resolution =' + str(resolution) + '\n' 
+    write_log += '#Llon =' + str(Llon) + '\n' \
+                + '#Rlon =' + str(Rlon) + '\n' \
+                + '#Slat =' + str(Slat) + '\n' \
+                + '#Nlat =' + str(Nlat) + '\n' \
+                + '#resolution =' + str(resolution) + '\n' 
     
     #Make Grid
     print('='*80)
@@ -116,7 +116,7 @@ def f(proc_date):
         
     total_data_cnt = 0
     file_no=0
-    write_log += 'processing file list\n' + 'No, filename, data \n'
+    write_log += '#processing file list\n' + 'No, filename, data \n'
     
     for k in sorted(glob(os.path.join(dir_name, '*.hdf'))):
         result_array = data_array
@@ -170,7 +170,7 @@ def f(proc_date):
                 total_data_cnt += data_cnt
             write_log += str(file_no) + ',' + str(data_cnt) +',' + str(k) + '\n'
             print('number of files: ', file_no, 'tatal data cnt :' , data_cnt)
-    write_log += 'total data number =' + str(total_data_cnt) + '\n'
+    write_log += '#total data number =' + str(total_data_cnt) + '\n'
     print('='*80)
     print(datetime.now(), proc_start_date, '-', proc_end_date, 'Calculating mean value at each pixel is being started ')
     
@@ -223,7 +223,7 @@ dates = []
 while date2 < s_end_date : 
     k += 1
     #date2 = date1 + relativedelta(months=1)
-    date2 = date1 + relativedelta(days=1)
+    date2 = date1 + relativedelta(months=1)
     
     date1_strf = date1.strftime('%Y%m%d')
     date2_strf = date2.strftime('%Y%m%d')

@@ -61,8 +61,10 @@ def f(proc_date):
     proc_start_date = proc_date[0]
     proc_end_date = proc_date[1]
     thread_number = proc_date[2]
-    write_log = 'start date = ' + str(proc_date[0]) +'\n'\
-                + 'end date = ' + str(proc_date[1]) +'\n'
+    write_log = '#This file is created using python \n' \
+                '#https://github.com/guitar79/MODIS_AOD \n' \
+                + '#start date = ' + str(proc_date[0]) +'\n'\
+                + '#end date = ' + str(proc_date[1]) +'\n'
     # some variables for downloading (site, file, perid and time gap, etc.)
     start_date = datetime(int(proc_start_date[:4]), int(proc_start_date[4:6]), int(proc_start_date[6:8])) #convert startdate to date type
     end_date = datetime(int(proc_end_date[:4]), int(proc_end_date[4:6]), int(proc_end_date[6:8])) #convert startdate to date type
@@ -72,11 +74,11 @@ def f(proc_date):
     Slat, Nlat = 10, 60
     resolution = 0.1
     
-    write_log += 'Llon =' + str(Llon) + '\n' \
-                + 'Rlon =' + str(Rlon) + '\n' \
-                + 'Slat =' + str(Slat) + '\n' \
-                + 'Nlat =' + str(Nlat) + '\n' \
-                + 'resolution =' + str(resolution) + '\n' 
+    write_log += '#Llon =' + str(Llon) + '\n' \
+                + '#Rlon =' + str(Rlon) + '\n' \
+                + '#Slat =' + str(Slat) + '\n' \
+                + '#Nlat =' + str(Nlat) + '\n' \
+                + '#resolution =' + str(resolution) + '\n' 
     
     #Make Grid
     print('='*80)
@@ -114,7 +116,7 @@ def f(proc_date):
         
     total_data_cnt = 0
     file_no=0
-    write_log += 'processing file list\n' + 'No, filename, data \n'
+    write_log += '#processing file list\n' + 'No, filename, data \n'
     
     for k in sorted(glob(os.path.join(dir_name, '*.hdf'))):
         result_array = data_array
@@ -168,7 +170,7 @@ def f(proc_date):
                 total_data_cnt += data_cnt
             write_log += str(file_no) + ',' + str(data_cnt) +',' + str(k) + '\n'
             print('number of files: ', file_no, 'tatal data cnt :' , data_cnt)
-    write_log += 'total data number =' + str(total_data_cnt) + '\n'
+    write_log += '#total data number =' + str(total_data_cnt) + '\n'
     print('='*80)
     print(datetime.now(), proc_start_date, '-', proc_end_date, 'Calculating mean value at each pixel is being started ')
     
