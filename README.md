@@ -1,1 +1,1 @@
-# MODIS_AOD
+# KOSC AVHRR SST statistics
