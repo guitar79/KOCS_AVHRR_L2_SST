@@ -15,6 +15,7 @@ conda install -c conda-forge basemap
 from glob import glob
 import numpy as np
 from datetime import datetime
+import calendar
 import os
 import threading
 from queue import Queue
@@ -22,44 +23,55 @@ from queue import Queue
 #fo checking time
 cht_start_time = datetime.now()
 
-dir_name = '2011/'
-save_dir_name = 'weekly/'
-save_file_header = 'KOSC_AVHRR_SST_'
+dir_name = 'L2_SST_NOAA/2011/'
+save_dir_name = 'L2_SST_NOAA/weekly/'
 if not os.path.exists(save_dir_name):
     os.makedirs(save_dir_name)
     print ('*'*80)
-    print (save_dir_name, 'is created\n')
+    print (save_dir_name, 'is created')
 else :
     print ('*'*80)
-    print (save_dir_name, 'is exist\n')
+    print (save_dir_name, 'is exist')
 
-#for KOSC AVHRR sst file filename = '2011/2011.1117.1151.noaa-16.sst.asc'
-def filename_AVHRR_to_fileinfo(filename):
-    filename_el = filename.split('.')
-    #print('filename_el', filename_el)
-    filedatetime = datetime(int(filename_el[-6][-4:]), int(filename_el[-5][0:2]), int(filename_el[-5][2:4]),\
-                   int(filename_el[-4][0:2]), int(filename_el[-4][2:4]) ) 
-    satellite_name = filename_el[-3]
-    return filedatetime, satellite_name
+#JulianDate_to_date(2018, 131) -- '20180511'
+def JulianDate_to_date(y, jd):
+    month = 1
+    while jd - calendar.monthrange(y,month)[1] > 0 and month <= 12:
+        jd = jd - calendar.monthrange(y,month)[1]
+        month += 1
+    #return datetime(y, month, jd).strftime('%Y%m%d')
+    return datetime(y, month, jd)
+
+#date_to_JulianDate('20180201', '%Y%m%d') -- 2018032
+def date_to_JulianDate(dt, fmt):
+    dt = datetime.strptime(dt, fmt)
+    tt = dt.timetuple()
+    return int('%d%03d' % (tt.tm_year, tt.tm_yday))
+
+#for KOSC AVHRR sst file f = 'L2_SST_NOAA/2011\\2011.1208.1618.noaa-19.sst.asc'
+def filename_AVHRR_to_date(filename):
+    fileinfo = filename.split('.')
+    print('fileinfo', fileinfo)
+    date = datetime(int(fileinfo[-6][-4:]), int(fileinfo[-5][0:2]), int(fileinfo[-5][2:4])) 
+    return date.strftime('%Y%m%d')
+
+def filename_to_datetime(filename):
+    fileinfo = filename.split('.')
+    #print('fileinfo', fileinfo)
+    return datetime(int(fileinfo[-6][-4:]), int(fileinfo[-5][0:2]), int(fileinfo[-5][2:4])) 
+
 
 def f(proc_date):
-    print('proc_date', proc_date)
     proc_start_date = proc_date[0]
     proc_end_date = proc_date[1]
     thread_number = proc_date[2]
-    print('type(proc_start_date)', type(proc_start_date))
-    print('type(proc_end_date)', type(proc_end_date))
-    
     write_log = '#This file is created using python \n' \
-                '#https://github.com/guitar79/KOCS_AVHRR_L2_SST \n' \
-                + '#start date = ' + proc_date[0] +'\n'\
-                + '#end date = ' + proc_date[1] +'\n'
-    
+                '#https://github.com/guitar79/KOCS_sst \n' \
+                + '#start date = ' + str(proc_date[0]) +'\n'\
+                + '#end date = ' + str(proc_date[1]) +'\n'
     # some variables for downloading (site, file, perid and time gap, etc.)
-    #convert startdate to date type
-    start_date = datetime(int(proc_start_date[0:4]), int(proc_start_date[4:6]), int(proc_start_date[6:8])) 
-    #convert startdate to date type
-    end_date = datetime(int(proc_end_date[0:4]), int(proc_end_date[4:6]), int(proc_end_date[6:8])) 
+    start_date = datetime(int(proc_start_date[:4]), int(proc_start_date[4:6]), int(proc_start_date[6:8])) #convert startdate to date type
+    end_date = datetime(int(proc_end_date[:4]), int(proc_end_date[4:6]), int(proc_end_date[6:8])) #convert startdate to date type
   
     #Set lon, lat, resolution
     Llon, Rlon = 90, 150
@@ -74,7 +86,7 @@ def f(proc_date):
     
     #Make Grid
     print('='*80)
-    print(start_date, '-', end_date, 'Start making grid arrays...\n')
+    print(datetime.now(), proc_start_date, '-', proc_end_date, 'Start making grid arrays...\n')
     
     ni = np.int((Rlon-Llon)/resolution+1.00)
     nj = np.int((Nlat-Slat)/resolution+1.00)
@@ -103,7 +115,7 @@ def f(proc_date):
         cnt_array.append(cnt_line)
     lat_array = np.array(lat_array)
     lon_array = np.array(lon_array)
-    print('grid arrays are created')
+    print('grid arrays are created\n')
     print('='*80)
         
     total_data_cnt = 0
@@ -112,13 +124,15 @@ def f(proc_date):
     
     for k in sorted(glob(os.path.join(dir_name, '*.asc'))):
         result_array = data_array
-        file_date, satellite_name = filename_AVHRR_to_fileinfo(k)
-                
+        file_date = filename_to_datetime(k)
+        #print('fileinfo', file_date)
+        
         if file_date >= start_date \
             and file_date < end_date : 
             print('='*80)
             print(datetime.now(), 'Start reading asc file...\n', k)
             try:
+                
                 tsv_list = np.genfromtxt(k, delimiter="\t") 
                 latitude = tsv_list[:,1]
                 longitude = tsv_list[:,2]
@@ -130,35 +144,33 @@ def f(proc_date):
             print('='*80)
             print('Starting... ', k)
             
-            #if np.shape(longitude) != np.shape(latitude) or np.shape(latitude) != np.shape(sst) :
-            if len(longitude) != len(latitude) or len(latitude) != len(sst) :
+            if np.shape(longitude) != np.shape(latitude) or np.shape(latitude) != np.shape(sst) :
                 print('data shape is different!! \n')
                 print('='*80)
             else : 
                 lon_cood = np.array(((longitude-Llon)/resolution*100//100), dtype=np.uint16)
                 lat_cood = np.array(((Nlat-latitude)/resolution*100//100), dtype=np.uint16)
                 data_cnt = 0
-                print (np.shape(lon_cood))
-            
                 for i in range(np.shape(lon_cood)[0]) :
-                    if int(lon_cood[i]) < np.shape(lon_array)[0] \
-                        and int(lat_cood[i]) < np.shape(lon_array)[1] \
-                        and not np.isnan(sst[i]) :
-                        data_cnt += 1 #for debug
-                        result_array[int(lon_cood[i])][int(lat_cood[i])].append(sst[i])
+                    for j in range(np.shape(lon_cood)[1]) :
+                        if int(lon_cood[i][j]) < np.shape(lon_array)[0] \
+                            and int(lat_cood[i][j]) < np.shape(lon_array)[1] \
+                            and not np.isnan(sst[i][j]) :
+                            data_cnt += 1 #for debug
+                            result_array[int(lon_cood[i][j])][int(lat_cood[i][j])].append(sst[i][j])
                 file_no += 1
                 total_data_cnt += data_cnt
             write_log += str(file_no) + ',' + str(data_cnt) +',' + str(k) + '\n'
             print('number of files: ', file_no, 'tatal data cnt :' , data_cnt)
     write_log += '#total data number =' + str(total_data_cnt) + '\n'
     print('='*80)
-    print(start_date, '-', end_date, 'Calculating mean value at each pixel is being started ')
+    print(datetime.now(), proc_start_date, '-', proc_end_date, 'Calculating mean value at each pixel is being started ')
     
     cnt2 = 0 #for debug
     for i in range(np.shape(result_array)[0]):
         for j in range(np.shape(result_array)[1]):
             cnt2 += 1 #for debug
-            if len(result_array[i][j]) > 0 : mean_array[i][j] = np.mean(result_array[i][j])
+            if len(result_array[i][j])>0: mean_array[i][j] = np.mean(result_array[i][j])
             else : mean_array[i][j] = np.nan
             cnt_array[i][j] = len(result_array[i][j])
     print(thread_number, 'cnt2 :' , cnt2)
@@ -166,15 +178,14 @@ def f(proc_date):
     mean_array = np.array(mean_array)
     cnt_array = np.array(cnt_array)    
     save_array = np.array([lon_array, lat_array, mean_array])
-    np.save(save_dir_name + save_file_header + proc_start_date + '_' + proc_end_date\
-            + '_' + str(Llon) + '_' + str(Rlon) \
-            + '_' + str(Slat) + '_' + str(Nlat)\
-            + '_' + str(resolution) + '.npy', save_array)
-    print(save_dir_name + save_file_header + proc_start_date + '_' + proc_end_date\
-            + '_' + str(Llon)+'_'+str(Rlon)\
-            +'_'+str(Slat)+'_'+str(Nlat)+'_'+str(resolution)+'.npy is creaated\n')
-    with open('%s%S%s_%s_%s_%s_%s_%s_%s_info.txt' \
-              % (save_dir_name, save_file_header, proc_start_date, proc_end_date,\
+    np.save(save_dir_name+'AOD_3K_'+proc_start_date+'_'+proc_end_date\
+            +'_'+str(Llon)+'_'+str(Rlon)+'_'+str(Slat)+'_'+str(Nlat)\
+            +'_'+str(resolution)+'.npy', save_array)
+    print(save_dir_name+'AOD_3K_'+proc_start_date+'_'+proc_end_date\
+            +'_'+str(Llon)+'_'+str(Rlon)\
+            +'_'+str(Slat)+'_'+str(Nlat)+'_'+str(resolution)+'.npy is creaated')
+    with open('%sAOD_3K_%s_%s_%s_%s_%s_%s_%s_info.txt' \
+              % (save_dir_name, proc_start_date, proc_end_date,\
               str(Llon), str(Rlon), str(Slat), str(Nlat), str(resolution)), 'w') as f:
         f.write(write_log)
     print('='*80) 
@@ -194,7 +205,7 @@ compress_queue = Queue()
 #https://datascienceschool.net/view-notebook/465066ac92ef4da3b0aba32f76d9750a/
 #http://egloos.zum.com/mcchae/v/11203068
 from dateutil.relativedelta import relativedelta
-s_start_date = datetime(2011, 9, 1) #convert startdate to date type
+s_start_date = datetime(2011, 1, 1) #convert startdate to date type
 s_end_date = datetime(2011, 12, 31)
 
 k=0
@@ -212,7 +223,7 @@ while date2 < s_end_date :
     dates.append(date)
     date1 = date2
 
-num_cpu = 1
+num_cpu = 12
 
 for i in range(num_cpu):
     t = threading.Thread(target=process_queue)

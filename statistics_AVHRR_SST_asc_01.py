@@ -4,12 +4,6 @@
 Created on Sat Nov  3 20:34:47 2018
 @author: guitar79
 created by Kevin 
-#Open hdf file
-NameError: name 'SD' is not defined
-conda install -c conda-forge pyhdf=0.9.0
-#basemap
-conda install -c conda-forge basemap-data-hires
-conda install -c conda-forge basemap
 '''
 
 from glob import glob
@@ -23,8 +17,9 @@ from queue import Queue
 cht_start_time = datetime.now()
 
 dir_name = '2011/'
-save_dir_name = 'weekly/'
+save_dir_name = 'daily/'
 save_file_header = 'KOSC_AVHRR_SST_'
+
 if not os.path.exists(save_dir_name):
     os.makedirs(save_dir_name)
     print ('*'*80)
@@ -204,7 +199,7 @@ dates = []
 while date2 < s_end_date : 
     k += 1
     #date2 = date1 + relativedelta(months=1)
-    date2 = date1 + relativedelta(days=8)
+    date2 = date1 + relativedelta(days=1)
     
     date1_strf = date1.strftime('%Y%m%d')
     date2_strf = date2.strftime('%Y%m%d')
@@ -212,7 +207,7 @@ while date2 < s_end_date :
     dates.append(date)
     date1 = date2
 
-num_cpu = 1
+num_cpu = 6
 
 for i in range(num_cpu):
     t = threading.Thread(target=process_queue)
