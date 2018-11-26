@@ -214,7 +214,7 @@ for i in range(num_cpu):
     t.daemon = True
     t.start()
 
-for date in dates :
+for date in dates[0:10] :
     compress_queue.put(date)
 
 compress_queue.join()
